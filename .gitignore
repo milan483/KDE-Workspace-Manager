@@ -1,0 +1,14 @@
+/build/
+/build-*/
+/cmake-build-*/
+/CMakeFiles/
+/CMakeCache.txt
+/compile_commands.json
+/Testing/
+
+*.user
+*.qmlc
+*.jsc
+
+.idea/
+.vscode/
