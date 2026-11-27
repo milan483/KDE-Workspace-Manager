@@ -9,12 +9,12 @@ KDE Workspace Manager is a native KDE Plasma workspace-profile application. Keep
 - src/core/: shared C++ core types and logic.
 - src/app/: native application entry point and QML module target.
 - src/ui/: Kirigami QML window and pages.
-- src/profiles/: planned profile persistence, validation, and migrations.
+- src/profiles/: independent Qt Core Profile Engine library (domain model, JSON serialization, validation, storage, and migrations).
 - src/kwin/ and kwin-script/: planned KWin adapter and integration.
 - src/applications/: planned application launching and app-specific adapters.
 - src/restoration/: planned restore orchestration.
 - tests/unit/: Qt Test unit tests.
-- docs/: architecture and developer documentation.
+- docs/: architecture, development, and profile-format documentation.
 - .github/workflows/ci.yml: build and test CI.
 
 ## Build and verification
@@ -32,14 +32,16 @@ cmake --install build --prefix "$PWD/build/stage"
 
 ## Design constraints
 
-- Keep KWin-specific APIs and D-Bus transport out of src/core and src/app.
+- Keep KWin-specific APIs and D-Bus transport out of src/core, src/profiles, and src/app.
 - Keep QML presentation in src/ui; do not add domain or restoration behavior to QML.
 - Do not expose Save, Restore, Capture, or Switch actions until they are functional.
 - Use org.kde.kdeworkspacemanager consistently for the desktop-file and runtime application identity.
 - Persist stable logical identifiers, not temporary KWin window UUIDs.
 - Prefer desktopFileName for window matching, fall back to resourceClass, and use other attributes only as discriminators. Surface ambiguous matches instead of moving an uncertain window.
 - Model virtual-desktop membership as a collection and represent all-desktop/sticky windows explicitly.
-- Keep maximized, fullscreen, and minimized state distinct.
-- Version the JSON profile format and provide explicit migrations when its schema changes.
+- Keep application launch specifications separate from window-matching identity.
+- Keep maximized, fullscreen, and minimized state distinct; minimized windows retain their underlying state.
+- Version the JSON profile format and provide explicit sequential migrations when its schema changes. Do not invent a legacy v0 schema.
+- Keep the Profile Engine independent of KWin, D-Bus, Kirigami, and the application UI.
 - Add or update automated tests for behavioral changes.
 - Do not add a project license until the user selects one.
