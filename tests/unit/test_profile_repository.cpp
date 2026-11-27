@@ -207,6 +207,7 @@ void ProfileRepositoryTest::rejectsSymbolicLinkStorageDirectory()
     QVERIFY(error.has_value());
     QCOMPARE(error->code, ProfileErrorCode::DirectoryUnavailable);
 }
+
 void ProfileRepositoryTest::rejectsInvalidProfilesWithoutCreatingStorage()
 {
     QTemporaryDir temporaryDirectory;

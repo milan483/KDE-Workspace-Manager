@@ -162,7 +162,8 @@ std::optional<ProfileError> ProfileRepository::save(const Profile &profile) cons
     }
 
     const QFileDevice::Permissions privateDirectoryPermissions =
-        QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner;
+        storageDirectoryInfo.permissions()
+        & (QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
     QFile storageDirectory(m_storageDirectory);
     if (!storageDirectory.setPermissions(privateDirectoryPermissions))
     {
