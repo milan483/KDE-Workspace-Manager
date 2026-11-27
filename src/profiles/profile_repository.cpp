@@ -154,6 +154,23 @@ std::optional<ProfileError> ProfileRepository::save(const Profile &profile) cons
                                QStringLiteral("Could not create the profile storage directory."), m_storageDirectory);
     }
 
+    const QFileInfo storageDirectoryInfo(m_storageDirectory);
+    if (storageDirectoryInfo.isSymLink() || !storageDirectoryInfo.isDir())
+    {
+        return repositoryError(ProfileErrorCode::DirectoryUnavailable,
+                               QStringLiteral("Profile storage path is not a regular directory."), m_storageDirectory);
+    }
+
+    const QFileDevice::Permissions privateDirectoryPermissions =
+        QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner;
+    QFile storageDirectory(m_storageDirectory);
+    if (!storageDirectory.setPermissions(privateDirectoryPermissions))
+    {
+        return repositoryError(ProfileErrorCode::DirectoryUnavailable,
+                               QStringLiteral("Could not restrict profile storage directory permissions."),
+                               m_storageDirectory);
+    }
+
     const QString path = filePathForId(profile.id);
     const QFileInfo existingFile(path);
     if (existingFile.isSymLink())
@@ -169,6 +186,14 @@ std::optional<ProfileError> ProfileRepository::save(const Profile &profile) cons
         return repositoryError(
             ProfileErrorCode::IoError,
             QStringLiteral("Could not open the atomic profile file for writing: %1").arg(file.errorString()), path);
+    }
+
+    const QFileDevice::Permissions privateFilePermissions = QFileDevice::ReadOwner | QFileDevice::WriteOwner;
+    if (!file.setPermissions(privateFilePermissions))
+    {
+        const QString message = QStringLiteral("Could not restrict profile file permissions: %1").arg(file.errorString());
+        file.cancelWriting();
+        return repositoryError(ProfileErrorCode::IoError, message, path);
     }
 
     const QByteArray serialized = std::get<QByteArray>(std::move(serializedResult));

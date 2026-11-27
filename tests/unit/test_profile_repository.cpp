@@ -10,6 +10,8 @@
 #include <QTemporaryDir>
 #include <QtTest/QtTest>
 
+#include <sys/stat.h>
+
 using namespace kwm::profiles;
 
 class ProfileRepositoryTest final : public QObject
@@ -20,6 +22,9 @@ class ProfileRepositoryTest final : public QObject
     void listOnMissingDirectoryReturnsEmptyWithoutCreatingIt();
     void rejectsEmptyStorageDirectory();
     void savesLoadsListsUpdatesAndRemovesProfiles();
+    void savesProfilesWithOwnerOnlyPermissions();
+    void keepsExistingStorageAndUpdatedProfilesPrivate();
+    void rejectsSymbolicLinkStorageDirectory();
     void rejectsInvalidProfilesWithoutCreatingStorage();
     void listsHealthyProfilesAlongsideCorruptFiles();
     void reportsFilesWithInvalidNames();
@@ -41,6 +46,32 @@ bool writeBytes(const QString &path, const QByteArray &bytes)
 {
     QFile file(path);
     return file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size();
+}
+
+class UmaskGuard final
+{
+    public:
+    explicit UmaskGuard(mode_t mask)
+        : m_previous(umask(mask))
+    {
+    }
+
+    ~UmaskGuard()
+    {
+        umask(m_previous);
+    }
+
+    UmaskGuard(const UmaskGuard &) = delete;
+    UmaskGuard &operator=(const UmaskGuard &) = delete;
+
+    private:
+    mode_t m_previous;
+};
+
+QFileDevice::Permissions nonOwnerPermissions()
+{
+    return QFileDevice::ReadGroup | QFileDevice::WriteGroup | QFileDevice::ExeGroup | QFileDevice::ReadOther
+        | QFileDevice::WriteOther | QFileDevice::ExeOther;
 }
 
 } // namespace
@@ -109,6 +140,73 @@ void ProfileRepositoryTest::savesLoadsListsUpdatesAndRemovesProfiles()
     QVERIFY(!QFileInfo::exists(profilePath(repository.storageDirectory(), profile.id)));
 }
 
+void ProfileRepositoryTest::savesProfilesWithOwnerOnlyPermissions()
+{
+    const UmaskGuard permissiveUmask(0022);
+    QTemporaryDir temporaryDirectory;
+    QVERIFY(temporaryDirectory.isValid());
+
+    const QString storage = temporaryDirectory.filePath(QStringLiteral("profiles"));
+    ProfileRepository repository(storage);
+    const Profile profile = test::makeValidProfile();
+
+    QVERIFY(!repository.save(profile).has_value());
+
+    const QFileInfo directoryInfo(storage);
+    const QFileInfo fileInfo(profilePath(storage, profile.id));
+    QVERIFY(directoryInfo.isDir());
+    QVERIFY(fileInfo.isFile());
+    QVERIFY((directoryInfo.permissions() & nonOwnerPermissions()) == QFileDevice::Permissions{});
+    QVERIFY((fileInfo.permissions() & nonOwnerPermissions()) == QFileDevice::Permissions{});
+}
+
+void ProfileRepositoryTest::keepsExistingStorageAndUpdatedProfilesPrivate()
+{
+    const UmaskGuard permissiveUmask(0022);
+    QTemporaryDir temporaryDirectory;
+    QVERIFY(temporaryDirectory.isValid());
+
+    const QString storage = temporaryDirectory.filePath(QStringLiteral("profiles"));
+    ProfileRepository repository(storage);
+    Profile profile = test::makeValidProfile();
+    QVERIFY(!repository.save(profile).has_value());
+
+    const QString path = profilePath(storage, profile.id);
+    const QFileDevice::Permissions publicDirectoryPermissions =
+        QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner | QFileDevice::ReadGroup
+        | QFileDevice::WriteGroup | QFileDevice::ExeGroup | QFileDevice::ReadOther | QFileDevice::WriteOther
+        | QFileDevice::ExeOther;
+    const QFileDevice::Permissions publicFilePermissions =
+        QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadGroup | QFileDevice::WriteGroup
+        | QFileDevice::ReadOther | QFileDevice::WriteOther;
+    QVERIFY(QFile::setPermissions(storage, publicDirectoryPermissions));
+    QVERIFY(QFile::setPermissions(path, publicFilePermissions));
+
+    profile.name = QStringLiteral("Updated private profile");
+    QVERIFY(!repository.save(profile).has_value());
+
+    const QFileInfo directoryInfo(storage);
+    const QFileInfo fileInfo(path);
+    QVERIFY((directoryInfo.permissions() & nonOwnerPermissions()) == QFileDevice::Permissions{});
+    QVERIFY((fileInfo.permissions() & nonOwnerPermissions()) == QFileDevice::Permissions{});
+}
+
+void ProfileRepositoryTest::rejectsSymbolicLinkStorageDirectory()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY(temporaryDirectory.isValid());
+
+    const QString targetDirectory = temporaryDirectory.filePath(QStringLiteral("target"));
+    const QString storageLink = temporaryDirectory.filePath(QStringLiteral("profiles-link"));
+    QVERIFY(QDir().mkpath(targetDirectory));
+    QVERIFY(QFile::link(targetDirectory, storageLink));
+    QVERIFY(QFileInfo(storageLink).isSymLink());
+
+    ProfileRepository repository(storageLink);
+    const auto error = repository.save(test::makeValidProfile());
+    QVERIFY(error.has_value());
+    QCOMPARE(error->code, ProfileErrorCode::DirectoryUnavailable);
+}
 void ProfileRepositoryTest::rejectsInvalidProfilesWithoutCreatingStorage()
 {
     QTemporaryDir temporaryDirectory;
