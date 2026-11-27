@@ -2,15 +2,19 @@
 
 ## Prerequisites
 
-The current project foundation requires:
+The current application shell requires:
 
 - A C++20 compiler.
 - CMake 3.24 or newer.
 - Ninja.
-- Qt 6.4 or newer development files, including Qt Core and Qt Test.
-- Git.
+- Extra CMake Modules 6.0 or newer.
+- Qt 6.8 or newer development files: Core, Gui, Qml, Quick, QuickControls2, Widgets, and Test.
+- KDE Frameworks 6.8 or newer development files: CoreAddons, I18n, IconThemes, Kirigami, and QQC2DesktopStyle.
+- The QML runtime modules for Kirigami, KI18n, and the KDE desktop style.
+- qmllint and desktop-file-validate for the full test suite.
+- AppStream CLI and Qt QPA platform plugins, including the offscreen plugin, for KDE's install-manifest check and headless GUI test.
 
-The Kirigami UI, KDE Frameworks integration, KWin adapter, and D-Bus service are not part of this initial build target yet. Their additional development dependencies will be documented when those targets are introduced.
+Package names differ by distribution. On Ubuntu 26.04, the CI job installs the corresponding Qt and KF6 development packages, Extra CMake Modules, desktop-file-utils, and the QML lint tools.
 
 ## Configure
 
@@ -32,9 +36,16 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-The same configure, build, and test sequence runs in GitHub Actions on Ubuntu 24.04. The CI job installs the distribution packages `cmake`, `g++`, `ninja-build`, and `qt6-base-dev`.
+The test suite covers the core build metadata, offscreen application startup and navigation, QML linting, and desktop-entry validation.
 
-## Build options
+## Staged installation
 
-- Set `-DBUILD_TESTING=OFF` to omit the Qt Test dependency.
-- Use a different build directory if you need separate configurations, for example `build-release` with `-DCMAKE_BUILD_TYPE=Release`.
+```sh
+cmake --install build --prefix "$PWD/build/stage"
+```
+
+This verifies the install layout without modifying the system. The GitHub Actions workflow also checks the staged executable and desktop-entry paths.
+
+## CI
+
+GitHub Actions uses the Ubuntu 26.04 hosted runner and installs the Qt 6 / KDE Frameworks 6 development dependencies required by the application shell. The workflow runs configure, build, CTest, and staged-install checks for pushes and pull requests.

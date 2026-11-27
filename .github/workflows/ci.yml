@@ -15,8 +15,8 @@ concurrency:
 jobs:
   build-and-test:
     name: Build and test
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
 
     steps:
       - name: Check out source
@@ -28,10 +28,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends --yes \
+            appstream \
             cmake \
+            desktop-file-utils \
+            extra-cmake-modules \
             g++ \
+            libkf6coreaddons-dev \
+            libkf6i18n-dev \
+            libkf6iconthemes-dev \
+            libkf6qqc2desktopstyle-dev \
+            libkirigami-dev \
             ninja-build \
-            qt6-base-dev
+            qt6-base-dev \
+            qt6-declarative-dev \
+            qt6-declarative-dev-tools \
+            qt6-qpa-plugins
 
       - name: Configure
         run: >-
@@ -44,3 +55,11 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build --output-on-failure
+
+      - name: Install to staging prefix
+        run: cmake --install build --prefix "$PWD/build/stage"
+
+      - name: Verify staged installation
+        run: |
+          test -x build/stage/bin/kde-workspace-manager
+          test -f build/stage/share/applications/org.kde.kdeworkspacemanager.desktop

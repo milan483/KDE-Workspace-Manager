@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=KDE Workspace Manager
+Comment=Workspace profile manager for KDE Plasma
+Exec=kde-workspace-manager
+Icon=preferences-system-windows
+Type=Application
+Categories=Utility;
+StartupNotify=true
