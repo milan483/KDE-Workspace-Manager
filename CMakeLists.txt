@@ -63,6 +63,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(kwm_core PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
+add_subdirectory(src/profiles)
+
 add_subdirectory(src/app)
 
 if(BUILD_TESTING)
@@ -83,6 +85,28 @@ if(BUILD_TESTING)
 
     add_test(NAME kwm_core_tests COMMAND kwm_core_tests)
     set_tests_properties(kwm_core_tests PROPERTIES TIMEOUT 30)
+
+    function(kwm_add_profile_unit_test target source)
+        add_executable(${target} ${source})
+        target_link_libraries(${target}
+            PRIVATE
+                KDEWorkspaceManager::Profiles
+                Qt6::Test
+        )
+
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+        endif()
+
+        add_test(NAME ${target} COMMAND ${target})
+        set_tests_properties(${target} PROPERTIES TIMEOUT 30)
+    endfunction()
+
+    kwm_add_profile_unit_test(kwm_profile_tests tests/unit/test_profile.cpp)
+    kwm_add_profile_unit_test(kwm_profile_serializer_tests tests/unit/test_profile_serializer.cpp)
+    kwm_add_profile_unit_test(kwm_profile_validator_tests tests/unit/test_profile_validator.cpp)
+    kwm_add_profile_unit_test(kwm_profile_migrator_tests tests/unit/test_profile_migrator.cpp)
+    kwm_add_profile_unit_test(kwm_profile_repository_tests tests/unit/test_profile_repository.cpp)
 
     add_test(NAME kwm_application_smoke COMMAND kde-workspace-manager --smoke-test)
     set_tests_properties(kwm_application_smoke PROPERTIES

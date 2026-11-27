@@ -4,35 +4,44 @@ A native KDE Plasma application for saving, restoring, and switching between com
 
 ## Project status
 
-Early development. The repository foundation is in place and Unit 2 introduces the native Qt 6 / Kirigami application shell.
+The repository foundation and native Qt 6 / Kirigami application shell are in place. Unit 3 adds the independent Profile Engine.
 
-The current application provides:
+The application currently provides:
 - A Kirigami desktop window with a navigation drawer.
 - An initial Workspaces page with an explicit empty state.
 - A Settings placeholder page.
 - KDE application metadata and desktop integration.
 
-Workspace profile management, profile persistence, KWin integration, window capture, restoration, and switching are not implemented yet. The UI does not expose nonfunctional workspace actions.
+The Profile Engine provides:
+- A versioned V1 JSON profile model.
+- Structural and semantic validation.
+- JSON serialization and deserialization.
+- A sequential schema-migration entry point.
+- Persistent profile CRUD with atomic writes.
 
-## Planned capabilities
+Profile-management UI, KWin integration, window enumeration and capture, application launching, restoration, and workspace switching are not implemented yet. The UI does not expose nonfunctional workspace actions.
 
-Workspace profiles will eventually describe:
+See [Profile Format](docs/profile-format.md) for the persisted schema and storage contract.
+
+## Profile contents
+
+A workspace profile can represent:
 - Applications and their windows.
-- Window geometry, maximization, fullscreen, and minimized state.
-- Virtual desktop assignments and multi-desktop membership.
-- Application-specific session data where supported.
-- Desktop configuration associated with each profile.
-
-## Planned architecture
-
-- C++20, Qt 6, Kirigami, and KDE Frameworks 6.
-- KWin JavaScript adapter with session D-Bus communication.
-- KIO for application launching.
-- Versioned JSON profile storage and migrations.
-- CMake and Ninja.
-- Qt Test, CTest, and GitHub Actions.
+- Window geometry and distinct maximized, fullscreen, and minimized states.
+- Stable logical virtual desktops and multi-desktop membership.
+- Explicit all-desktop/sticky windows.
+- Separate application launch specifications and window-matching identities.
 
 The primary target is KDE Plasma on Wayland. X11 is not a primary target.
+
+## Architecture
+
+- C++20, Qt 6, Kirigami, and KDE Frameworks 6.
+- A Qt Core-only Profile Engine library, independent of the UI and KWin.
+- Versioned JSON profile storage and explicit migration infrastructure.
+- A planned KWin JavaScript adapter with session D-Bus communication.
+- KIO for planned application launching.
+- CMake, Ninja, Qt Test, CTest, and GitHub Actions.
 
 ## Build
 

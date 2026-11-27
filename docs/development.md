@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-The current application shell requires:
+The current application shell and Profile Engine require:
 
 - A C++20 compiler.
 - CMake 3.24 or newer.
@@ -36,7 +36,14 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-The test suite covers the core build metadata, offscreen application startup and navigation, QML linting, and desktop-entry validation.
+The test suite covers:
+- Core build metadata.
+- Profile domain invariants, JSON serialization/deserialization, structural and semantic validation, schema-version handling, and repository CRUD/failure cases.
+- Offscreen application startup and navigation.
+- QML linting and desktop-entry validation.
+- KDE's AppStream install-manifest check.
+
+Profile repository tests inject a temporary directory. They do not access the real application-data profile directory. See [Profile Format](profile-format.md) for the schema and persistence contract.
 
 ## Staged installation
 
@@ -48,4 +55,4 @@ This verifies the install layout without modifying the system. The GitHub Action
 
 ## CI
 
-GitHub Actions uses the Ubuntu 26.04 hosted runner and installs the Qt 6 / KDE Frameworks 6 development dependencies required by the application shell. The workflow runs configure, build, CTest, and staged-install checks for pushes and pull requests.
+GitHub Actions uses the Ubuntu 26.04 hosted runner and installs the Qt 6 / KDE Frameworks 6 development dependencies required by the application shell and Profile Engine. The workflow runs configure, build, CTest, and staged-install checks for pushes and pull requests.
