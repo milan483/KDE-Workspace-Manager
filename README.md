@@ -4,14 +4,19 @@ A native KDE Plasma application for saving, restoring, and switching between com
 
 ## Project status
 
-Early development. Phase 0 technical feasibility has been validated on KDE Plasma Wayland. Phase 1 is establishing the native application foundation, profile format, KWin integration boundary, automated tests, and CI.
+Early development. The repository foundation is in place and Unit 2 introduces the native Qt 6 / Kirigami application shell.
 
-The current build contains a small Qt Core library and its unit tests. The Kirigami application, profile engine, KWin adapter, and snapshot capture are not implemented yet.
+The current application provides:
+- A Kirigami desktop window with a navigation drawer.
+- An initial Workspaces page with an explicit empty state.
+- A Settings placeholder page.
+- KDE application metadata and desktop integration.
+
+Workspace profile management, profile persistence, KWin integration, window capture, restoration, and switching are not implemented yet. The UI does not expose nonfunctional workspace actions.
 
 ## Planned capabilities
 
-Workspace profiles describe:
-
+Workspace profiles will eventually describe:
 - Applications and their windows.
 - Window geometry, maximization, fullscreen, and minimized state.
 - Virtual desktop assignments and multi-desktop membership.
@@ -36,7 +41,11 @@ The primary target is KDE Plasma on Wayland. X11 is not a primary target.
 - C++20 compiler
 - CMake 3.24+
 - Ninja
-- Qt 6.4+ development files (Core and Test)
+- Extra CMake Modules 6.0+
+- Qt 6.8+ development files: Core, Gui, Qml, Quick, QuickControls2, Widgets, and Test
+- KDE Frameworks 6.8+ development files: CoreAddons, I18n, IconThemes, Kirigami, and QQC2DesktopStyle
+- QML modules for Kirigami, KI18n, and the KDE desktop style
+- `qmllint` and `desktop-file-validate` for the test suite
 
 ### Configure, build, and test
 
@@ -46,4 +55,10 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-See [Development](docs/development.md) for prerequisites and build options, and [Architecture](docs/architecture.md) for the component boundaries and known integration constraints.
+### Staged installation
+
+```sh
+cmake --install build --prefix "$PWD/build/stage"
+```
+
+This installs into the build directory rather than the system. See [Development](docs/development.md) for prerequisites and build options, and [Architecture](docs/architecture.md) for component boundaries and integration constraints.
