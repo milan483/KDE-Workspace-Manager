@@ -10,7 +10,7 @@ namespace kwm::profiles
 class ProfileMigrator final
 {
     public:
-    static constexpr int CurrentSchemaVersion = 1;
+    static constexpr int CurrentSchemaVersion = 2;
 
     [[nodiscard]] static ProfileResult<QJsonObject> migrateToCurrent(const QJsonObject &document);
 };

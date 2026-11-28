@@ -1,0 +1,10 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Description": "Window and virtual desktop capture bridge for KDE Workspace Manager",
+        "EnabledByDefault": false,
+        "Id": "org.kde.kdeworkspacemanager.capture",
+        "Name": "KDE Workspace Manager Capture"
+    },
+    "X-Plasma-API": "javascript"
+}

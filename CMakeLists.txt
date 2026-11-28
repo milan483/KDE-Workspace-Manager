@@ -13,6 +13,8 @@ set(CMAKE_AUTOMOC ON)
 
 include(CTest)
 
+option(BUILD_KWIN_INTEGRATION_TESTS "Build live KWin session integration tests" OFF)
+
 find_package(ECM 6.0.0 REQUIRED NO_MODULE)
 set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
 
@@ -29,6 +31,7 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS
     Quick
     QuickControls2
     Widgets
+    DBus
 )
 
 find_package(KF6 6.8 REQUIRED COMPONENTS
@@ -64,6 +67,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 add_subdirectory(src/profiles)
+
+add_subdirectory(src/kwin)
 
 add_subdirectory(src/app)
 
@@ -108,6 +113,41 @@ if(BUILD_TESTING)
     kwm_add_profile_unit_test(kwm_profile_migrator_tests tests/unit/test_profile_migrator.cpp)
     kwm_add_profile_unit_test(kwm_profile_repository_tests tests/unit/test_profile_repository.cpp)
 
+    function(kwm_add_kwin_unit_test target source)
+        add_executable(${target} ${source})
+        target_link_libraries(${target}
+            PRIVATE
+                KDEWorkspaceManager::KWin
+                Qt6::Test
+        )
+
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+        endif()
+
+        add_test(NAME ${target} COMMAND ${target})
+        set_tests_properties(${target} PROPERTIES TIMEOUT 30)
+    endfunction()
+
+    kwm_add_kwin_unit_test(kwm_kwin_request_queue_tests tests/unit/test_kwin_request_queue.cpp)
+    kwm_add_kwin_unit_test(kwm_kwin_snapshot_parser_tests tests/unit/test_kwin_snapshot_parser.cpp)
+
+    if(BUILD_KWIN_INTEGRATION_TESTS)
+        add_executable(kwm_kwin_live_capture_test tests/integration/test_kwin_live_capture.cpp)
+        target_link_libraries(kwm_kwin_live_capture_test
+            PRIVATE
+                KDEWorkspaceManager::KWin
+                Qt6::Core
+        )
+        add_test(NAME kwm_kwin_live_capture
+            COMMAND kwm_kwin_live_capture_test "${PROJECT_SOURCE_DIR}/kwin-script/contents/code/main.js")
+        set_tests_properties(kwm_kwin_live_capture PROPERTIES
+            TIMEOUT 30
+            LABELS "integration;kwin"
+            RUN_SERIAL TRUE
+        )
+    endif()
+
     add_test(NAME kwm_application_smoke COMMAND kde-workspace-manager --smoke-test)
     set_tests_properties(kwm_application_smoke PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
@@ -145,3 +185,7 @@ endif()
 
 include(FeatureSummary)
 feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)
+
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/kwin-script/"
+    DESTINATION "${KDE_INSTALL_DATADIR}/kwin/scripts/kde-workspace-manager"
+)

@@ -2,12 +2,13 @@
 
 ## Status and compatibility
 
-The Profile Engine persists profiles as versioned JSON documents. The first persisted format is schema version **1**.
+The Profile Engine persists profiles as versioned JSON documents. The current persisted format is schema version **2**. Schema version 1 remains readable through an explicit migration.
 
 - The top-level `schema_version` property is required and must be an integer.
-- V1 rejects unknown properties rather than silently discarding data.
+- V2 rejects unknown properties rather than silently discarding data.
 - UUIDs use canonical lowercase, hyphenated text without braces.
 - A missing, malformed, older unsupported, or newer unsupported schema version is rejected.
+- V1-to-V2 migration maps `state.maximized: true` to `state.maximize_mode: "full"` and `false` to `"none"`.
 - There is no v0 format and no synthetic v0-to-v1 migration.
 
 The C++ implementation lives in the independent `kwm_profiles` library. It depends on Qt Core and does not depend on Kirigami, KWin, D-Bus, or the application UI.
@@ -16,7 +17,7 @@ The C++ implementation lives in the independent `kwm_profiles` library. It depen
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "profile": {
     "id": "7f13c79e-6d12-4b3c-9a44-27f8b6cfcf01",
     "name": "Development"
@@ -68,7 +69,7 @@ The C++ implementation lives in the independent `kwm_profiles` library. It depen
           },
           "state": {
             "minimized": false,
-            "maximized": true,
+            "maximize_mode": "full",
             "fullscreen": false
           }
         },
@@ -85,7 +86,7 @@ The C++ implementation lives in the independent `kwm_profiles` library. It depen
           },
           "state": {
             "minimized": true,
-            "maximized": false,
+            "maximize_mode": "none",
             "fullscreen": true
           }
         }
@@ -116,7 +117,7 @@ The active desktop, when present, must reference an entry in `virtual_desktops`.
 
 Each desktop has a unique UUID `id` and a non-empty `name`. The array order is the profile's logical desktop order.
 
-These identifiers belong to the profile format. They are not KWin runtime desktop identifiers. The KWin integration will map logical IDs to runtime IDs separately.
+These identifiers belong to the profile format. They are not KWin runtime desktop identifiers. During capture, the adapter maps runtime KWin desktop UUIDs to newly generated logical IDs; restoration will resolve logical IDs to runtime IDs separately.
 
 ### Application
 
@@ -173,17 +174,17 @@ Geometry is optional. When present, it describes the normal/restored rectangle r
 - `width` and `height` must be positive.
 - The rectangle must fit inside the normalized work area: `x + width <= 1` and `y + height <= 1`.
 
-V1 is single-monitor. It does not persist a monitor identity or define cross-monitor geometry conversion. Geometry may be omitted when a normal/restored rectangle is unavailable or not meaningful for the captured state.
+V2 is single-monitor. It does not persist a monitor identity or define cross-monitor geometry conversion. Geometry may be omitted when a normal/restored rectangle is unavailable or not meaningful for the captured state. In particular, a capture adapter must not save the maximized or fullscreen frame rectangle as normal geometry when KWin does not expose the underlying restore rectangle.
 
 #### Window state
 
-All three boolean properties are required and independent:
+All three properties are required:
 
-- `minimized`
-- `maximized`
-- `fullscreen`
+- `minimized` is a boolean.
+- `maximize_mode` is one of `none`, `vertical`, `horizontal`, or `full`.
+- `fullscreen` is a boolean.
 
-Maximized and fullscreen cannot both be true. Minimized may coexist with either one because minimizing does not erase the underlying maximized or fullscreen state.
+A non-`none` maximize mode and fullscreen cannot both be active. Minimized may coexist with any underlying mode because minimizing does not erase the underlying window state.
 
 ## Identifier and reference rules
 
@@ -206,12 +207,7 @@ Errors use `ProfileError` with a stable error code, a message, an optional JSON 
 
 `ProfileMigrator::migrateToCurrent()` checks the schema version and provides the sequential migration entry point.
 
-V1 is the first persisted version, so its migration registry contains no legacy migration. A future schema change must:
-
-1. Increment the current schema version.
-2. Add an explicit migration from the immediately preceding version.
-3. Transform the JSON object to exactly the next version.
-4. Add migration tests for the transformation and its failure cases.
+V1 is the first persisted version and has no synthetic v0 migration. The V1-to-V2 migration replaces the required boolean `state.maximized` with the required string `state.maximize_mode`: `true` becomes `full` and `false` becomes `none`. The migration preserves `minimized` and `fullscreen`, advances exactly one version, and does not write the migrated document back to disk. Future schema changes must increment the version, register an explicit migration from the immediately preceding version, transform the JSON object to exactly the next version, and include success and failure tests.
 
 Unknown future versions and older versions without a registered migration are rejected. Loading a migrated document does not overwrite its source file; persistence occurs only after an explicit repository save.
 
@@ -242,4 +238,4 @@ Repository tests inject a temporary storage directory. They do not read or modif
 
 ## Implementation boundary
 
-The Profile Engine owns the domain model, V1 JSON format, structural and semantic validation, migration entry point, and persistent repository. It does not enumerate windows, launch applications, communicate with KWin or D-Bus, restore windows, switch desktops, or provide profile-management UI.
+The Profile Engine owns the domain model, V2 JSON format, structural and semantic validation, sequential migrations, and persistent repository. It does not enumerate windows, launch applications, communicate with KWin or D-Bus, restore windows, switch desktops, or provide profile-management UI. Window enumeration and capture belong to the separate KWin adapter.

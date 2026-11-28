@@ -13,6 +13,7 @@ class ProfileTest final : public QObject
     void domainModelSupportsMultipleAndAllDesktopMembership();
     void applicationLaunchSpecificationIsSeparateFromWindowIdentity();
     void identityKindsHaveStableFormatNames();
+    void maximizeModesHaveStableFormatNames();
 };
 
 void ProfileTest::domainModelPreservesDistinctWindowStates()
@@ -20,12 +21,12 @@ void ProfileTest::domainModelPreservesDistinctWindowStates()
     const Profile profile = test::makeValidProfile();
     const auto &windows = profile.applications.constFirst().windows;
 
-    QVERIFY(windows.at(0).state.maximized);
+    QVERIFY(windows.at(0).state.maximizeMode == WindowMaximizeMode::Full);
     QVERIFY(!windows.at(0).state.minimized);
     QVERIFY(!windows.at(0).state.fullscreen);
 
     QVERIFY(windows.at(1).state.minimized);
-    QVERIFY(!windows.at(1).state.maximized);
+    QVERIFY(windows.at(1).state.maximizeMode == WindowMaximizeMode::None);
     QVERIFY(windows.at(1).state.fullscreen);
 }
 
@@ -62,6 +63,20 @@ void ProfileTest::identityKindsHaveStableFormatNames()
     QVERIFY(applicationIdentityKindFromString(QStringLiteral("resource_class")) ==
             ApplicationIdentityKind::ResourceClass);
     QVERIFY(!applicationIdentityKindFromString(QStringLiteral("app_id")).has_value());
+}
+
+void ProfileTest::maximizeModesHaveStableFormatNames()
+{
+    QCOMPARE(windowMaximizeModeToString(WindowMaximizeMode::None), QStringLiteral("none"));
+    QCOMPARE(windowMaximizeModeToString(WindowMaximizeMode::Vertical), QStringLiteral("vertical"));
+    QCOMPARE(windowMaximizeModeToString(WindowMaximizeMode::Horizontal), QStringLiteral("horizontal"));
+    QCOMPARE(windowMaximizeModeToString(WindowMaximizeMode::Full), QStringLiteral("full"));
+
+    QVERIFY(windowMaximizeModeFromString(QStringLiteral("none")) == WindowMaximizeMode::None);
+    QVERIFY(windowMaximizeModeFromString(QStringLiteral("vertical")) == WindowMaximizeMode::Vertical);
+    QVERIFY(windowMaximizeModeFromString(QStringLiteral("horizontal")) == WindowMaximizeMode::Horizontal);
+    QVERIFY(windowMaximizeModeFromString(QStringLiteral("full")) == WindowMaximizeMode::Full);
+    QVERIFY(!windowMaximizeModeFromString(QStringLiteral("partial")).has_value());
 }
 
 QTEST_APPLESS_MAIN(ProfileTest)

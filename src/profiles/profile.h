@@ -28,6 +28,17 @@ enum class DesktopMembershipMode
 [[nodiscard]] QString desktopMembershipModeToString(DesktopMembershipMode mode);
 [[nodiscard]] std::optional<DesktopMembershipMode> desktopMembershipModeFromString(const QString &value);
 
+enum class WindowMaximizeMode
+{
+    None,
+    Vertical,
+    Horizontal,
+    Full
+};
+
+[[nodiscard]] QString windowMaximizeModeToString(WindowMaximizeMode mode);
+[[nodiscard]] std::optional<WindowMaximizeMode> windowMaximizeModeFromString(const QString &value);
+
 struct Geometry
 {
     double x = 0.0;
@@ -65,7 +76,7 @@ struct DesktopMembership
 struct WindowState
 {
     bool minimized = false;
-    bool maximized = false;
+    WindowMaximizeMode maximizeMode = WindowMaximizeMode::None;
     bool fullscreen = false;
 
     bool operator==(const WindowState &) const = default;

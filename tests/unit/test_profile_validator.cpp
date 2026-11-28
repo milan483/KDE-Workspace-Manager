@@ -20,6 +20,8 @@ class ProfileValidatorTest final : public QObject
     void rejectsSpecificIdsForAllDesktopMembership();
     void rejectsOutOfBoundsGeometry();
     void rejectsConflictingMaximizedAndFullscreenStates();
+    void rejectsUnsupportedMaximizeMode();
+    void allowsPartialMaximizeModes();
     void allowsMinimizedWindowsToRetainUnderlyingState();
     void rejectsMissingApplicationIdentity();
 };
@@ -113,18 +115,36 @@ void ProfileValidatorTest::rejectsOutOfBoundsGeometry()
 void ProfileValidatorTest::rejectsConflictingMaximizedAndFullscreenStates()
 {
     Profile profile = test::makeValidProfile();
-    profile.applications[0].windows[0].state.maximized = true;
+    profile.applications[0].windows[0].state.maximizeMode = WindowMaximizeMode::Full;
     profile.applications[0].windows[0].state.fullscreen = true;
 
     const auto issues = ProfileValidator::validate(profile);
     QVERIFY(hasIssueAt(issues, QStringLiteral("applications[0].windows[0].state")));
 }
 
+void ProfileValidatorTest::rejectsUnsupportedMaximizeMode()
+{
+    Profile profile = test::makeValidProfile();
+    profile.applications[0].windows[0].state.maximizeMode = static_cast<WindowMaximizeMode>(99);
+
+    const auto issues = ProfileValidator::validate(profile);
+    QVERIFY(hasIssueAt(issues, QStringLiteral("applications[0].windows[0].state.maximize_mode")));
+}
+
+void ProfileValidatorTest::allowsPartialMaximizeModes()
+{
+    Profile profile = test::makeValidProfile();
+    profile.applications[0].windows[0].state.maximizeMode = WindowMaximizeMode::Vertical;
+    profile.applications[0].windows[1].state.maximizeMode = WindowMaximizeMode::Horizontal;
+    profile.applications[0].windows[1].state.fullscreen = false;
+    QVERIFY(ProfileValidator::validate(profile).isEmpty());
+}
+
 void ProfileValidatorTest::allowsMinimizedWindowsToRetainUnderlyingState()
 {
     Profile profile = test::makeValidProfile();
-    profile.applications[0].windows[0].state = {true, true, false};
-    profile.applications[0].windows[1].state = {true, false, true};
+    profile.applications[0].windows[0].state = {true, WindowMaximizeMode::Vertical, false};
+    profile.applications[0].windows[1].state = {true, WindowMaximizeMode::None, true};
 
     QVERIFY(ProfileValidator::validate(profile).isEmpty());
 }
