@@ -1,8 +1,7 @@
 #pragma once
 
-#include "kwin/kwin_snapshot_parser.h"
+#include "workspaces/workspace_capture_backend.h"
 
-#include <QObject>
 #include <QString>
 #include <QTimer>
 
@@ -15,7 +14,7 @@ class KWinBridgeService;
 class KWinRequestQueue;
 class KWinScriptController;
 
-class KWinCaptureClient final : public QObject
+class KWinCaptureClient final : public kwm::workspaces::WorkspaceCaptureBackend
 {
     Q_OBJECT
 
@@ -24,20 +23,14 @@ class KWinCaptureClient final : public QObject
 
     [[nodiscard]] static QString installedScriptPath();
     [[nodiscard]] bool isBridgeReady() const;
-    [[nodiscard]] bool isRunning() const;
+    [[nodiscard]] bool isRunning() const override;
     [[nodiscard]] QString bridgeRegistrationError() const;
+    void start(const QString &scriptPath);
 
     public Q_SLOTS:
-    void start(const QString &scriptPath = {});
-    void stop();
-    QString capture(const QString &profileName);
-
-    Q_SIGNALS:
-    void started();
-    void stopped();
-    void failed(const QString &message);
-    void captureCompleted(const QString &requestId, const kwm::kwin::KWinCaptureSnapshot &snapshot);
-    void captureFailed(const QString &requestId, const QString &path, const QString &message);
+    void start() override;
+    void stop() override;
+    QString capture(const QString &profileName) override;
 
     private:
     void handleResponse(const QString &requestId, const QString &responseJson);
@@ -52,5 +45,3 @@ class KWinCaptureClient final : public QObject
 };
 
 } // namespace kwm::kwin
-
-Q_DECLARE_METATYPE(kwm::kwin::KWinCaptureSnapshot)

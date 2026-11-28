@@ -38,6 +38,19 @@ KWinScriptController::KWinScriptController(QObject *parent)
 {
 }
 
+KWinScriptController::~KWinScriptController()
+{
+    // KWin scripts outlive this process unless the plugin is explicitly unloaded.
+    if (!m_connection.isConnected() || (!m_starting && !m_running && m_scriptId < 0))
+    {
+        return;
+    }
+
+    QDBusMessage message = methodCall(ScriptingPath, ScriptingInterface, QStringLiteral("unloadScript"),
+                                      {pluginName()});
+    m_connection.send(message);
+}
+
 bool KWinScriptController::isStarting() const
 {
     return m_starting;

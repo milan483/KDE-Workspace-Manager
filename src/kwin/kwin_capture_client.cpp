@@ -1,4 +1,5 @@
 #include "kwin/kwin_capture_client.h"
+#include "kwin/kwin_snapshot_parser.h"
 
 #include "kwin/kwin_bridge_service.h"
 #include "kwin/kwin_request_queue.h"
@@ -18,12 +19,12 @@ namespace kwm::kwin
 {
 
 KWinCaptureClient::KWinCaptureClient(QObject *parent)
-    : QObject(parent)
+    : kwm::workspaces::WorkspaceCaptureBackend(parent)
     , m_queue(new KWinRequestQueue(this))
     , m_bridge(new KWinBridgeService(m_queue, this))
     , m_scriptController(new KWinScriptController(this))
 {
-    qRegisterMetaType<KWinCaptureSnapshot>();
+    qRegisterMetaType<kwm::workspaces::WorkspaceCaptureSnapshot>();
 
     connect(m_queue, &KWinRequestQueue::requestCompleted, this,
             &KWinCaptureClient::handleResponse);
@@ -64,6 +65,11 @@ bool KWinCaptureClient::isRunning() const
 QString KWinCaptureClient::bridgeRegistrationError() const
 {
     return m_bridge->registrationError();
+}
+
+void KWinCaptureClient::start()
+{
+    start(QString{});
 }
 
 void KWinCaptureClient::start(const QString &scriptPath)
@@ -139,7 +145,7 @@ void KWinCaptureClient::handleResponse(const QString &requestId, const QString &
         return;
     }
 
-    Q_EMIT captureCompleted(requestId, std::get<KWinCaptureSnapshot>(result));
+    Q_EMIT captureCompleted(requestId, std::get<kwm::workspaces::WorkspaceCaptureSnapshot>(result));
 }
 
 void KWinCaptureClient::handleCaptureTimeout()

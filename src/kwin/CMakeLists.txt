@@ -21,6 +21,7 @@ target_include_directories(kwm_kwin
 target_link_libraries(kwm_kwin
     PUBLIC
         KDEWorkspaceManager::Profiles
+        KDEWorkspaceManager::Workspaces
         Qt6::Core
         Qt6::DBus
 )

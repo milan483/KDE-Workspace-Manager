@@ -7,6 +7,7 @@
 
 using namespace kwm::kwin;
 using namespace kwm::profiles;
+using kwm::workspaces::WorkspaceCaptureSnapshot;
 
 class KWinSnapshotParserTest final : public QObject
 {
@@ -20,7 +21,7 @@ class KWinSnapshotParserTest final : public QObject
     void rejectsUnknownDesktopMembership();
     void rejectsDesktopIdsOnAllDesktopMembership();
     void rejectsUnsupportedMaximizeMode();
-    void rejectsConflictingFullscreenAndMaximizeState();
+    void preservesMaximizeModeUnderFullscreen();
     void rejectsRemoteCaptureErrors();
 };
 
@@ -82,7 +83,7 @@ QJsonObject validResponse()
             {QStringLiteral("snapshot"), snapshot}};
 }
 
-ProfileResult<KWinCaptureSnapshot> parse(const QJsonObject &response)
+ProfileResult<WorkspaceCaptureSnapshot> parse(const QJsonObject &response)
 {
     return KWinSnapshotParser::parse(QJsonDocument(response).toJson(QJsonDocument::Compact), requestId,
                                      QStringLiteral("Development"));
@@ -93,9 +94,9 @@ ProfileResult<KWinCaptureSnapshot> parse(const QJsonObject &response)
 void KWinSnapshotParserTest::parsesSnapshotAndMapsRuntimeDesktopIdentifiers()
 {
     const auto result = parse(validResponse());
-    QVERIFY(std::holds_alternative<KWinCaptureSnapshot>(result));
+    QVERIFY(std::holds_alternative<WorkspaceCaptureSnapshot>(result));
 
-    const KWinCaptureSnapshot captured = std::get<KWinCaptureSnapshot>(result);
+    const WorkspaceCaptureSnapshot captured = std::get<WorkspaceCaptureSnapshot>(result);
     const Profile &profile = captured.profile;
     QVERIFY(!profile.id.isNull());
     QCOMPARE(profile.name, QStringLiteral("Development"));
@@ -213,7 +214,7 @@ void KWinSnapshotParserTest::rejectsUnsupportedMaximizeMode()
     QVERIFY(std::get<ProfileError>(result).code == ProfileErrorCode::InvalidStructure);
 }
 
-void KWinSnapshotParserTest::rejectsConflictingFullscreenAndMaximizeState()
+void KWinSnapshotParserTest::preservesMaximizeModeUnderFullscreen()
 {
     QJsonObject response = validResponse();
     QJsonObject snapshot = response.value(QStringLiteral("snapshot")).toObject();
@@ -222,13 +223,18 @@ void KWinSnapshotParserTest::rejectsConflictingFullscreenAndMaximizeState()
     QJsonObject state = editor.value(QStringLiteral("state")).toObject();
     state.insert(QStringLiteral("fullscreen"), true);
     editor.insert(QStringLiteral("state"), state);
+    editor.remove(QStringLiteral("geometry"));
     windows[0] = editor;
     snapshot.insert(QStringLiteral("windows"), windows);
     response.insert(QStringLiteral("snapshot"), snapshot);
 
     const auto result = parse(response);
-    QVERIFY(std::holds_alternative<ProfileError>(result));
-    QVERIFY(std::get<ProfileError>(result).code == ProfileErrorCode::ValidationFailed);
+    QVERIFY(std::holds_alternative<WorkspaceCaptureSnapshot>(result));
+    const auto &captured = std::get<WorkspaceCaptureSnapshot>(result);
+    const auto &window = captured.profile.applications.first().windows.first();
+    QCOMPARE(window.state.maximizeMode, WindowMaximizeMode::Vertical);
+    QVERIFY(window.state.fullscreen);
+    QVERIFY(!window.geometry.has_value());
 }
 
 void KWinSnapshotParserTest::rejectsRemoteCaptureErrors()

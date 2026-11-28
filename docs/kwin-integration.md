@@ -2,11 +2,12 @@
 
 ## Status and boundary
 
-The repository contains a working KWin capture backend. It is not yet connected to a user-facing Save action, profile-management UI, application launching, or restoration orchestration. The UI therefore continues to expose no nonfunctional capture or restore controls.
+The repository contains a working KWin capture backend connected to user-confirmed Save and Update workflows through `WorkspaceService`. The Workspaces page also exposes profile preview and CRUD operations. Application launching, window restoration, and workspace switching are not implemented; the UI does not expose nonfunctional Restore or Switch controls.
 
 The integration is isolated from the Profile Engine:
 
-- `src/kwin/` contains the C++ D-Bus bridge service, request queue, script controller, capture client, and snapshot parser.
+- `src/kwin/` contains the C++ D-Bus bridge service, request queue, script controller, capture client implementing the workspace capture interface, and snapshot parser.
+- `src/workspaces/` contains the application-level service and QML profile-list model. It coordinates capture and Profile Engine operations without owning KWin or D-Bus transport.
 - `kwin-script/` contains the KPackage metadata and JavaScript adapter loaded by KWin.
 - `src/profiles/` remains Qt Core-only and has no KWin or D-Bus dependency.
 
@@ -37,7 +38,7 @@ The adapter captures:
 - `desktopFileName` as the preferred application identity, falling back to `resourceClass`.
 - `windowRole` when non-empty.
 - Specific multi-desktop membership or explicit all-desktop/sticky membership.
-- Minimized, fullscreen, and four-mode maximization state.
+- Minimized, fullscreen, and four-mode maximization state. Maximize mode is captured independently of fullscreen so any flags KWin retains underneath fullscreen are preserved.
 - Normal window geometry normalized against `workspace.clientArea(KWin.MaximizeArea, window)` when it is available and fully contained in the work area.
 
 Runtime KWin desktop UUIDs are mapped to newly generated logical profile UUIDs by the C++ parser. KWin window UUIDs, process IDs, and window titles are not persisted as profile identity.
@@ -79,7 +80,7 @@ The test performs a read-only capture. It does not move existing windows or chan
 
 ## Remaining work
 
-- Connect the capture client to a user-confirmed profile Save workflow.
+- Populate safe application launch specifications through a separate desktop-entry resolution task; the capture parser must not infer commands from window classes.
 - Decide how to preserve or explicitly report normal restore geometry for maximized/fullscreen windows if a future KWin API or safe source becomes available.
 - Implement application launching and restoration orchestration.
 - Implement the inactive-desktop activation/geometry/readback sequence in restoration, with failure recovery and final active-desktop restoration.

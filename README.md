@@ -4,11 +4,11 @@ A native KDE Plasma application for saving, restoring, and switching between com
 
 ## Project status
 
-The repository foundation, native Qt 6 / Kirigami application shell, independent Profile Engine, and first KWin capture backend are in place.
+The repository foundation, native Qt 6 / Kirigami application shell, independent Profile Engine, KWin capture backend, and profile-management/save workflow are in place.
 
 The application currently provides:
 - A Kirigami desktop window with a navigation drawer.
-- An initial Workspaces page with an explicit empty state.
+- A Workspaces page for saving, previewing, updating, renaming, duplicating, and deleting profiles.
 - A Settings placeholder page.
 - KDE application metadata and desktop integration.
 
@@ -26,7 +26,13 @@ The KWin capture backend provides:
 - Stable application identity, multi-desktop/sticky membership, normalized geometry, and distinct window-state extraction.
 - A C++ capture client and parser that produce validated Profile Engine models.
 
-Profile-management UI, application launching, restoration, and workspace switching are not implemented yet. Capture is available as a backend API but is not exposed as a user-facing action. The UI does not expose nonfunctional workspace actions.
+The workspace-management layer provides:
+- A two-phase Save Workspace and Update Workspace workflow with a capture preview and explicit confirmation.
+- Profile listing, preview, rename, duplication, and deletion.
+- Profile updates that preserve the profile UUID and matching logical desktop UUIDs by captured order.
+- Capture limitation reporting for excluded windows, unavailable geometry, and missing application launch specifications.
+
+Application launching, window restoration, and workspace switching are not implemented yet. Captured profiles currently record application identity and window state, but the capture parser does not populate application launch specifications. The UI does not expose nonfunctional Restore or Switch actions.
 
 See [Profile Format](docs/profile-format.md) for the persisted schema and storage contract.
 
@@ -47,6 +53,7 @@ The primary target is KDE Plasma on Wayland. X11 is not a primary target.
 - A Qt Core-only Profile Engine library, independent of the UI and KWin.
 - Versioned JSON profile storage and explicit migration infrastructure.
 - A KWin JavaScript adapter with a Qt D-Bus bridge, asynchronous script controller, and snapshot parser.
+- A WorkspaceService and ProfileListModel that connect capture, validation, atomic persistence, and profile management.
 - KIO for planned application launching.
 - CMake, Ninja, Qt Test, CTest, and GitHub Actions.
 

@@ -13,6 +13,7 @@ The primary target is KDE Plasma on Wayland. X11 is not a primary target.
 - **UI** — Qt 6 / Kirigami pages and navigation. It presents application state and delegates behavior to C++ services as those services are introduced.
 - **Profiles** — an independent Qt Core library for the domain model, versioned JSON serialization, validation, storage, and schema migrations.
 - **KWin integration** — a packaged JavaScript adapter that captures KWin-managed windows and virtual desktops.
+- **Runtime composition** — constructs the application-level services and injects concrete platform adapters without exposing those dependencies to the application shell.
 - **D-Bus bridge** — a versioned session-level request queue between the native application and the KWin adapter.
 - **Applications** — KIO-based launching and optional application-specific session adapters.
 - **Restoration** — preflight, desktop preparation, application launch, window matching, state application, and post-restore verification.
@@ -25,9 +26,22 @@ The native executable initializes KDE application metadata and localization, the
 
 The desktop entry uses the reverse-DNS identity org.kde.kdeworkspacemanager. The same identity is assigned to the application at runtime so desktop integration and Wayland window identity remain consistent.
 
-The current Workspaces page is an explicit empty state. The Settings page is a placeholder. Neither page exposes operations that are not implemented.
+The Workspaces page exposes profile listing, capture preview, save, update, rename, duplicate, and delete operations. The Settings page remains a placeholder. Restore and Switch actions are intentionally absent.
 
 Keep UI presentation in QML and application initialization in src/app. Do not put KWin APIs, D-Bus transport, persistence, or restoration behavior in the application shell.
+
+## Workspace orchestration
+
+The application-level service layer lives in `src/workspaces/`:
+
+- **WorkspaceService** coordinates profile operations, capture lifecycle, preview confirmation, validation, and persistence.
+- **ProfileListModel** exposes profile names and desktop/application/window counts to QML.
+- **WorkspaceCaptureBackend** is the KWin-neutral injectable capture boundary implemented by `KWinCaptureClient`. The service consumes its signals and does not perform D-Bus or KWin communication itself.
+- The runtime composition factory constructs the ProfileRepository-backed WorkspaceService and injects the concrete KWin capture adapter. The application shell calls this factory through a KWin-neutral API and exposes the service to QML as `workspaceService`.
+
+Saving and updating are two-phase operations: capture produces a validated preview; only explicit user confirmation persists it. The existing ProfileRepository remains responsible for atomic storage. Updating preserves the profile UUID and matching logical desktop UUIDs by captured desktop order, preserves launch specifications for uniquely matched application identities, and replaces the captured application/window snapshot. Ambiguous launch-metadata matches fail safely rather than guessing. Duplication creates new profile, desktop, application, and window UUIDs and remaps desktop references.
+
+This layer does not launch applications, create or rearrange runtime virtual desktops, restore windows, or switch profiles.
 
 ## Profile Engine
 
@@ -62,6 +76,6 @@ Native testing on Plasma/KWin 6.8.3 Wayland confirmed that setting `frameGeometr
 
 ## Current implementation
 
-The current build contains kwm_core, the independent kwm_profiles library, the kwm_kwin capture library, a native Kirigami application shell, an embedded QML module, KDE desktop metadata, and a packaged KWin JavaScript adapter. The KWin library provides the D-Bus request queue/service, script lifecycle controller, capture client, and snapshot-to-profile parser. The packaged script uses KWin 6.8.3 scripting APIs verified against the live Plasma Wayland session. Unit tests cover the queue and parser; an optional native integration test exercises live capture in a running KWin session. Capture is read-only and does not alter existing windows or desktops.
+The current build contains kwm_core, the independent kwm_profiles library, the kwm_workspaces service/model library, the kwm_kwin capture adapter library, a runtime composition library, a native Kirigami application shell, an embedded QML module, KDE desktop metadata, and a packaged KWin JavaScript adapter. The KWin library provides the D-Bus request queue/service, script lifecycle controller, KWin capture client implementing the workspace capture interface, and snapshot-to-profile parser. The packaged script uses KWin 6.8.3 scripting APIs verified against the live Plasma Wayland session. Unit tests cover the queue, parser, workspace service, and profile list model; an optional native integration test exercises live capture in a running KWin session. Capture remains read-only and does not alter existing windows or desktops.
 
-Application launching, restoration orchestration, profile-management UI, and wiring the capture client into a user-facing Save action remain future implementation units.
+Application launching, restoration orchestration, and workspace switching remain future implementation units.

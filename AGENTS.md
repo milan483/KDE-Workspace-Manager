@@ -10,7 +10,9 @@ KDE Workspace Manager is a native KDE Plasma workspace-profile application. Keep
 - src/app/: native application entry point and QML module target.
 - src/ui/: Kirigami QML window and pages.
 - src/profiles/: independent Qt Core Profile Engine library (domain model, JSON serialization, validation, storage, and migrations).
+- src/workspaces/: application-level workspace service, profile-list model, and KWin-neutral capture contract.
 - src/kwin/: KWin D-Bus bridge, script lifecycle controller, capture client, and snapshot parser.
+- src/runtime/: application composition root that wires workspace services to concrete platform adapters.
 - kwin-script/: packaged KWin JavaScript capture adapter.
 - src/applications/: planned application launching and app-specific adapters.
 - src/restoration/: planned restore orchestration.
@@ -45,6 +47,7 @@ cmake --install build --prefix "$PWD/build/stage"
 - Version the JSON profile format and provide explicit sequential migrations when its schema changes. Do not invent a legacy v0 schema.
 - Keep the Profile Engine independent of KWin, D-Bus, Kirigami, and the application UI.
 - Keep KWin APIs and D-Bus transport in `src/kwin/` and `kwin-script/`; the adapter must not persist runtime window UUIDs.
+- Keep `src/workspaces/` independent of KWin and D-Bus. Construct concrete platform adapters in `src/runtime/`, not `src/app/`.
 - Capture geometry only when a normal/restored rectangle is available. KWin 6.8.3 does not expose `geometryRestore` to scripts, so omit geometry for maximized/fullscreen windows.
 - The current profile format is single-monitor; reject multi-monitor capture rather than silently losing monitor placement.
 - Before applying geometry to a window on an inactive virtual desktop, activate the target desktop, apply and verify geometry, then restore the intended active desktop.

@@ -40,6 +40,7 @@ The default test suite covers:
 - Core build metadata.
 - Profile domain invariants, JSON serialization/deserialization, structural and semantic validation, schema-version handling, and repository CRUD/failure cases.
 - KWin D-Bus request-queue behavior and snapshot-to-profile parsing, including invalid protocol and window-state data.
+- WorkspaceService and ProfileListModel behavior, including save-preview-confirm, timeout/failure handling, profile CRUD, UUID regeneration/preservation, desktop-reference remapping, restart loading, and storage failure.
 - Offscreen application startup and navigation.
 - QML linting and desktop-entry validation.
 - KDE's AppStream install-manifest check.
@@ -52,9 +53,9 @@ cmake --build build --parallel
 ctest --test-dir build -R kwm_kwin_live_capture --output-on-failure
 ```
 
-The live test loads the JavaScript adapter from the repository package directory temporarily, captures a read-only snapshot through the session D-Bus bridge, and unloads the adapter. It does not move, resize, minimize, or change the desktop assignment of existing windows. It is disabled by default and is not suitable for headless CI without a running KWin session.
+The live test loads the JavaScript adapter from the repository package directory temporarily, captures a read-only snapshot through the session D-Bus bridge, and verifies that destroying the capture client unloads the adapter. It does not move, resize, minimize, or change the desktop assignment of existing windows. It is disabled by default and is not suitable for headless CI without a running KWin session.
 
-Profile repository tests inject a temporary directory. They do not access the real application-data profile directory. See [Profile Format](profile-format.md) for the schema and persistence contract.
+Profile repository and WorkspaceService tests inject temporary storage. They do not access the real application-data profile directory. See [Profile Format](profile-format.md) for the schema and persistence contract.
 
 ## Staged installation
 

@@ -15,6 +15,7 @@ class KWinScriptController final : public QObject
     static QString pluginName();
 
     explicit KWinScriptController(QObject *parent = nullptr);
+    ~KWinScriptController() override;
 
     [[nodiscard]] bool isStarting() const;
     [[nodiscard]] bool isRunning() const;
