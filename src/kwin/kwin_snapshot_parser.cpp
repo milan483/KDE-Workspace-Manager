@@ -136,7 +136,7 @@ bool parseGeometry(const QJsonObject &object, const QString &path, std::optional
 
 } // namespace
 
-ProfileResult<KWinCaptureSnapshot> KWinSnapshotParser::parse(const QByteArray &responseJson,
+ProfileResult<kwm::workspaces::WorkspaceCaptureSnapshot> KWinSnapshotParser::parse(const QByteArray &responseJson,
                                                               const QString &expectedRequestId,
                                                               const QString &profileName)
 {
@@ -217,7 +217,7 @@ ProfileResult<KWinCaptureSnapshot> KWinSnapshotParser::parse(const QByteArray &r
                               QStringLiteral("At least one virtual desktop is required."));
     }
 
-    KWinCaptureSnapshot captured;
+    kwm::workspaces::WorkspaceCaptureSnapshot captured;
     Profile &profile = captured.profile;
     if (profileName.trimmed().isEmpty())
     {
@@ -429,8 +429,13 @@ ProfileResult<KWinCaptureSnapshot> KWinSnapshotParser::parse(const QByteArray &r
     const QVector<ProfileIssue> issues = ProfileValidator::validate(profile);
     if (!issues.isEmpty())
     {
+        const ProfileIssue &firstIssue = issues.constFirst();
+        const QString detail = firstIssue.path.isEmpty()
+            ? firstIssue.message
+            : QStringLiteral("%1: %2").arg(firstIssue.path, firstIssue.message);
         return ProfileError{ProfileErrorCode::ValidationFailed,
-                            QStringLiteral("Captured KWin snapshot failed profile validation."), {}, issues};
+                            QStringLiteral("Captured KWin snapshot failed profile validation: %1").arg(detail),
+                            {}, issues};
     }
 
     captured.excludedWindowCount = excludedWindowCount;

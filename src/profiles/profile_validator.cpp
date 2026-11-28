@@ -198,12 +198,6 @@ QVector<ProfileIssue> ProfileValidator::validate(const Profile &profile)
                 addIssue(issues, windowPath + QStringLiteral(".state.maximize_mode"),
                          QStringLiteral("Window maximize mode is not supported."));
             }
-
-            if (window.state.maximizeMode != WindowMaximizeMode::None && window.state.fullscreen)
-            {
-                addIssue(issues, windowPath + QStringLiteral(".state"),
-                         QStringLiteral("A window cannot be maximized and fullscreen simultaneously."));
-            }
         }
     }
 

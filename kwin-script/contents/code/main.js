@@ -119,6 +119,8 @@ function kwmCaptureSnapshot() {
             continue;
         }
 
+        var fullscreen = Boolean(window.fullScreen);
+        // Preserve maximize flags independently; KWin may retain them underneath fullscreen.
         var maximizeMode = kwmMaximizeModeName(window.maximizeMode);
         if (maximizeMode === null) {
             return {
@@ -145,7 +147,7 @@ function kwmCaptureSnapshot() {
         var state = {
             minimized: Boolean(window.minimized),
             maximize_mode: maximizeMode,
-            fullscreen: Boolean(window.fullScreen)
+            fullscreen: fullscreen
         };
 
         var record = {

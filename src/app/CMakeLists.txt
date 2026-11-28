@@ -17,6 +17,7 @@ ecm_target_qml_sources(kde-workspace-manager
 target_link_libraries(kde-workspace-manager
     PRIVATE
         KDEWorkspaceManager::Core
+        KDEWorkspaceManager::Runtime
         Qt6::Gui
         Qt6::Qml
         Qt6::Quick

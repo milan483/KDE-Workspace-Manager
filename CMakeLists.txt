@@ -68,7 +68,11 @@ endif()
 
 add_subdirectory(src/profiles)
 
+add_subdirectory(src/workspaces)
+
 add_subdirectory(src/kwin)
+
+add_subdirectory(src/runtime)
 
 add_subdirectory(src/app)
 
@@ -131,6 +135,20 @@ if(BUILD_TESTING)
 
     kwm_add_kwin_unit_test(kwm_kwin_request_queue_tests tests/unit/test_kwin_request_queue.cpp)
     kwm_add_kwin_unit_test(kwm_kwin_snapshot_parser_tests tests/unit/test_kwin_snapshot_parser.cpp)
+
+    add_executable(kwm_workspace_service_tests
+        tests/unit/test_workspace_service.cpp
+    )
+    target_link_libraries(kwm_workspace_service_tests
+        PRIVATE
+            KDEWorkspaceManager::Workspaces
+            Qt6::Test
+    )
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(kwm_workspace_service_tests PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+    add_test(NAME kwm_workspace_service_tests COMMAND kwm_workspace_service_tests)
+    set_tests_properties(kwm_workspace_service_tests PROPERTIES TIMEOUT 30)
 
     if(BUILD_KWIN_INTEGRATION_TESTS)
         add_executable(kwm_kwin_live_capture_test tests/integration/test_kwin_live_capture.cpp)

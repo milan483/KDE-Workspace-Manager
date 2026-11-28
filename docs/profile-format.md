@@ -184,7 +184,7 @@ All three properties are required:
 - `maximize_mode` is one of `none`, `vertical`, `horizontal`, or `full`.
 - `fullscreen` is a boolean.
 
-A non-`none` maximize mode and fullscreen cannot both be active. Minimized may coexist with any underlying mode because minimizing does not erase the underlying window state.
+Maximize mode and fullscreen are independent properties and may both be set when the window manager reports both states. Minimized may coexist with any underlying mode because minimizing does not erase the underlying window state.
 
 ## Identifier and reference rules
 

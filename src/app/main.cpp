@@ -1,4 +1,6 @@
 #include "core/build_info.h"
+#include "profiles/profile_repository.h"
+#include "runtime/workspace_service_factory.h"
 
 #include <KAboutData>
 #include <KIconTheme>
@@ -14,11 +16,13 @@
 #include <QMetaObject>
 #include <QObject>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include <QQuickStyle>
 #include <QString>
 #include <QVariant>
 
 #include <cstdlib>
+#include <utility>
 
 namespace
 {
@@ -105,7 +109,10 @@ int main(int argc, char *argv[])
     parser.addOption(smokeTestOption);
     parser.process(app);
 
+    kwm::profiles::ProfileRepository profileRepository;
+    auto workspaceService = kwm::runtime::createWorkspaceService(std::move(profileRepository));
     QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty(QStringLiteral("workspaceService"), workspaceService.get());
     KLocalization::setupLocalizedContext(&engine);
     engine.loadFromModule("org.kde.kdeworkspacemanager", "Main");
 

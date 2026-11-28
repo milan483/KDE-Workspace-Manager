@@ -19,7 +19,7 @@ class ProfileValidatorTest final : public QObject
     void rejectsEmptySpecificMembership();
     void rejectsSpecificIdsForAllDesktopMembership();
     void rejectsOutOfBoundsGeometry();
-    void rejectsConflictingMaximizedAndFullscreenStates();
+    void allowsMaximizeModeToBeRetainedUnderFullscreen();
     void rejectsUnsupportedMaximizeMode();
     void allowsPartialMaximizeModes();
     void allowsMinimizedWindowsToRetainUnderlyingState();
@@ -112,14 +112,13 @@ void ProfileValidatorTest::rejectsOutOfBoundsGeometry()
     QVERIFY(hasIssueAt(issues, QStringLiteral("applications[0].windows[0].geometry")));
 }
 
-void ProfileValidatorTest::rejectsConflictingMaximizedAndFullscreenStates()
+void ProfileValidatorTest::allowsMaximizeModeToBeRetainedUnderFullscreen()
 {
     Profile profile = test::makeValidProfile();
     profile.applications[0].windows[0].state.maximizeMode = WindowMaximizeMode::Full;
     profile.applications[0].windows[0].state.fullscreen = true;
 
-    const auto issues = ProfileValidator::validate(profile);
-    QVERIFY(hasIssueAt(issues, QStringLiteral("applications[0].windows[0].state")));
+    QVERIFY(ProfileValidator::validate(profile).isEmpty());
 }
 
 void ProfileValidatorTest::rejectsUnsupportedMaximizeMode()
