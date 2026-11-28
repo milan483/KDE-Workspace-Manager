@@ -39,7 +39,7 @@ bool checkOnlyKeys(const QJsonObject &object, const QStringList &allowedKeys, co
         if (!allowedKeys.contains(it.key()))
         {
             return fail(error, propertyPath(path, it.key()),
-                        QStringLiteral("Unknown property is not allowed in schema version 1."));
+                        QStringLiteral("Unknown property is not allowed in the current schema version."));
         }
     }
     return true;
@@ -327,14 +327,26 @@ bool parseWindow(const QJsonValue &value, const QString &path, Window &window, P
     const QString statePath = path + QStringLiteral(".state");
     if (!requiredObject(object, QStringLiteral("state"), path, stateObject, error) ||
         !checkOnlyKeys(stateObject,
-                       {QStringLiteral("minimized"), QStringLiteral("maximized"), QStringLiteral("fullscreen")},
+                       {QStringLiteral("minimized"), QStringLiteral("maximize_mode"), QStringLiteral("fullscreen")},
                        statePath, error) ||
         !requiredBoolean(stateObject, QStringLiteral("minimized"), statePath, window.state.minimized, error) ||
-        !requiredBoolean(stateObject, QStringLiteral("maximized"), statePath, window.state.maximized, error) ||
         !requiredBoolean(stateObject, QStringLiteral("fullscreen"), statePath, window.state.fullscreen, error))
     {
         return false;
     }
+
+    QString maximizeMode;
+    if (!requiredString(stateObject, QStringLiteral("maximize_mode"), statePath, maximizeMode, error))
+    {
+        return false;
+    }
+    const auto parsedMaximizeMode = windowMaximizeModeFromString(maximizeMode);
+    if (!parsedMaximizeMode.has_value())
+    {
+        return fail(error, statePath + QStringLiteral(".maximize_mode"),
+                    QStringLiteral("Maximize mode must be none, vertical, horizontal, or full."));
+    }
+    window.state.maximizeMode = *parsedMaximizeMode;
 
     return true;
 }
@@ -481,7 +493,7 @@ QJsonObject windowToJson(const Window &window)
     }
 
     QJsonObject state{{QStringLiteral("minimized"), window.state.minimized},
-                      {QStringLiteral("maximized"), window.state.maximized},
+                      {QStringLiteral("maximize_mode"), windowMaximizeModeToString(window.state.maximizeMode)},
                       {QStringLiteral("fullscreen"), window.state.fullscreen}};
 
     QJsonObject object{{QStringLiteral("id"), window.id.toString(QUuid::WithoutBraces)},

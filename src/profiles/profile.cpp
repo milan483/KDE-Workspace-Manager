@@ -57,4 +57,43 @@ std::optional<DesktopMembershipMode> desktopMembershipModeFromString(const QStri
     return std::nullopt;
 }
 
+QString windowMaximizeModeToString(WindowMaximizeMode mode)
+{
+    switch (mode)
+    {
+    case WindowMaximizeMode::None:
+        return QStringLiteral("none");
+    case WindowMaximizeMode::Vertical:
+        return QStringLiteral("vertical");
+    case WindowMaximizeMode::Horizontal:
+        return QStringLiteral("horizontal");
+    case WindowMaximizeMode::Full:
+        return QStringLiteral("full");
+    }
+
+    return {};
+}
+
+std::optional<WindowMaximizeMode> windowMaximizeModeFromString(const QString &value)
+{
+    if (value == QStringLiteral("none"))
+    {
+        return WindowMaximizeMode::None;
+    }
+    if (value == QStringLiteral("vertical"))
+    {
+        return WindowMaximizeMode::Vertical;
+    }
+    if (value == QStringLiteral("horizontal"))
+    {
+        return WindowMaximizeMode::Horizontal;
+    }
+    if (value == QStringLiteral("full"))
+    {
+        return WindowMaximizeMode::Full;
+    }
+
+    return std::nullopt;
+}
+
 } // namespace kwm::profiles

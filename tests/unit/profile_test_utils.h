@@ -32,13 +32,13 @@ inline Profile makeValidProfile()
     editorWindow.match.role = QStringLiteral("main");
     editorWindow.desktopMembership = {DesktopMembershipMode::Specific, {firstDesktopId, secondDesktopId}};
     editorWindow.geometry = Geometry{0.05, 0.05, 0.9, 0.9};
-    editorWindow.state = {false, true, false};
+    editorWindow.state = {false, WindowMaximizeMode::Full, false};
 
     Window stickyWindow;
     stickyWindow.id = QUuid::createUuid();
     stickyWindow.match.applicationIdentity = {ApplicationIdentityKind::ResourceClass, QStringLiteral("org.kde.kate")};
     stickyWindow.desktopMembership = {DesktopMembershipMode::All, {}};
-    stickyWindow.state = {true, false, true};
+    stickyWindow.state = {true, WindowMaximizeMode::None, true};
 
     application.windows = {editorWindow, stickyWindow};
     profile.applications.push_back(application);

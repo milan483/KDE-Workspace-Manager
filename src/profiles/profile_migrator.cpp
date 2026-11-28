@@ -1,6 +1,7 @@
 #include "profiles/profile_migrator.h"
 
 #include <QHash>
+#include <QJsonArray>
 #include <QJsonValue>
 
 #include <cmath>
@@ -14,17 +15,97 @@ namespace
 
 using MigrationFunction = std::function<ProfileResult<QJsonObject>(const QJsonObject &)>;
 
-const QHash<int, MigrationFunction> &migrationRegistry()
-{
-    // V1 is the first persisted schema. There is deliberately no synthetic v0 migration.
-    // When V2 is introduced, register an explicit 1 -> 2 transformation here.
-    static const QHash<int, MigrationFunction> migrations;
-    return migrations;
-}
-
 ProfileError error(ProfileErrorCode code, const QString &message, const QString &path = {})
 {
     return {code, message, path, {}};
+}
+
+ProfileResult<QJsonObject> migrateV1ToV2(const QJsonObject &document)
+{
+    QJsonValue applicationsValue = document.value(QStringLiteral("applications"));
+    if (!applicationsValue.isArray())
+    {
+        return error(ProfileErrorCode::InvalidStructure,
+                     QStringLiteral("Required property must be an array."), QStringLiteral("applications"));
+    }
+
+    QJsonArray applications = applicationsValue.toArray();
+    for (qsizetype applicationIndex = 0; applicationIndex < applications.size(); ++applicationIndex)
+    {
+        const QString applicationPath = QStringLiteral("applications[%1]").arg(applicationIndex);
+        QJsonValue applicationValue = applications.at(applicationIndex);
+        if (!applicationValue.isObject())
+        {
+            return error(ProfileErrorCode::InvalidStructure,
+                         QStringLiteral("Application entry must be an object."), applicationPath);
+        }
+
+        QJsonObject application = applicationValue.toObject();
+        const QJsonValue windowsValue = application.value(QStringLiteral("windows"));
+        if (!windowsValue.isArray())
+        {
+            return error(ProfileErrorCode::InvalidStructure,
+                         QStringLiteral("Required property must be an array."),
+                         applicationPath + QStringLiteral(".windows"));
+        }
+
+        QJsonArray windows = windowsValue.toArray();
+        for (qsizetype windowIndex = 0; windowIndex < windows.size(); ++windowIndex)
+        {
+            const QString windowPath = applicationPath + QStringLiteral(".windows[%1]").arg(windowIndex);
+            const QJsonValue windowValue = windows.at(windowIndex);
+            if (!windowValue.isObject())
+            {
+                return error(ProfileErrorCode::InvalidStructure,
+                             QStringLiteral("Window entry must be an object."), windowPath);
+            }
+
+            QJsonObject window = windowValue.toObject();
+            const QString statePath = windowPath + QStringLiteral(".state");
+            const QJsonValue stateValue = window.value(QStringLiteral("state"));
+            if (!stateValue.isObject())
+            {
+                return error(ProfileErrorCode::InvalidStructure,
+                             QStringLiteral("Required property must be an object."), statePath);
+            }
+
+            QJsonObject state = stateValue.toObject();
+            if (state.contains(QStringLiteral("maximize_mode")))
+            {
+                return error(ProfileErrorCode::InvalidStructure,
+                             QStringLiteral("Schema version 1 must not contain maximize_mode."),
+                             statePath + QStringLiteral(".maximize_mode"));
+            }
+
+            const QJsonValue maximizedValue = state.value(QStringLiteral("maximized"));
+            if (!maximizedValue.isBool())
+            {
+                return error(ProfileErrorCode::InvalidStructure,
+                             QStringLiteral("Required property must be a boolean."),
+                             statePath + QStringLiteral(".maximized"));
+            }
+
+            state.remove(QStringLiteral("maximized"));
+            state.insert(QStringLiteral("maximize_mode"),
+                         maximizedValue.toBool() ? QStringLiteral("full") : QStringLiteral("none"));
+            window.insert(QStringLiteral("state"), state);
+            windows[windowIndex] = window;
+        }
+
+        application.insert(QStringLiteral("windows"), windows);
+        applications[applicationIndex] = application;
+    }
+
+    QJsonObject migrated = document;
+    migrated.insert(QStringLiteral("schema_version"), 2);
+    migrated.insert(QStringLiteral("applications"), applications);
+    return migrated;
+}
+
+const QHash<int, MigrationFunction> &migrationRegistry()
+{
+    static const QHash<int, MigrationFunction> migrations{{1, migrateV1ToV2}};
+    return migrations;
 }
 
 ProfileResult<int> readSchemaVersion(const QJsonObject &document)
